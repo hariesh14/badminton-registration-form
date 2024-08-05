@@ -2,4 +2,8 @@ google_auth_oauthlib==1.2.0
 gspread==6.1.2
 streamlit==1.36.0
 python-dotenv==1.0.1
+<<<<<<< HEAD
 google-api-python-client==2.139.0
+=======
+google-api-python-client==2.139.0
+>>>>>>> 5b43c8ca032324c1f39b0a98c73873a2ac8c48d9

@@ -1,4 +1,6 @@
 venv/
 __pycache__/
+.streamlit/
 .env
 gsheet-connect-service-account.json
+test.py

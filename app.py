@@ -1,22 +1,21 @@
-import os
 import streamlit as st
 import gspread
-from google.oauth2.service_account import Credentials
-from dotenv import load_dotenv
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-load_dotenv()
-GSHEET_URL = os.environ.get("GSHEET_URL")
+# Retrieve secrets from Streamlit's secrets management
+GSHEET_URL = st.secrets["gcp_gsheet"]["url"]
+gcp_service_account = st.secrets["gcp_service_account"]
 
-# Load credentials from JSON file
-creds = Credentials.from_service_account_file(
-    './gsheet-connect-service-account.json',
+# Use the secrets to create a credentials object
+credentials = service_account.Credentials.from_service_account_info(
+    gcp_service_account,
     scopes=['https://www.googleapis.com/auth/spreadsheets']
 )
 
 # Initialize Google Sheets API clients
-client = gspread.authorize(creds)
-service = build('sheets', 'v4', credentials=creds)
+client = gspread.authorize(credentials)
+service = build('sheets', 'v4', credentials=credentials)
 
 # Function to create or get a worksheet
 def get_or_create_worksheet(sheet, worksheet_name):
@@ -162,9 +161,8 @@ def main():
             category = new_row['Category']
             gender_mapping = {"Male": "Boys", "Female": "Girls"}
             gender = gender_mapping.get(new_row['Gender'], new_row['Gender'])
-            
-            sheet_url = GSHEET_URL
-            sheet = client.open_by_url(sheet_url)
+
+            sheet = client.open_by_url(GSHEET_URL)
 
             # Determine the new serial number
             def get_last_serial_number(worksheet, newly_created):
