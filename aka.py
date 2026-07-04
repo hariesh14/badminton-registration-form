@@ -1,5 +1,6 @@
 import streamlit as st
 import gspread
+import pandas as pd
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -22,6 +23,7 @@ def get_or_create_worksheet(sheet, worksheet_name):
     newly_created = False
     try:
         worksheet = sheet.worksheet(worksheet_name)
+        return worksheet, newly_created  # Return the worksheet and newly_created as False
     except gspread.exceptions.WorksheetNotFound:
         worksheet = sheet.add_worksheet(title=worksheet_name, rows="100", cols="20")
         headers = ["Serial Number", "Name", "State ID Number", "Mobile Number", "Gender", "Training Centre", "Category", "Seed"]
@@ -29,15 +31,14 @@ def get_or_create_worksheet(sheet, worksheet_name):
         newly_created = True
 
         # Apply bold formatting to headers
-        # Get the sheet ID from Google Sheets API
         spreadsheet_id = sheet.id
         sheet_id = next(
             sheet['properties']['sheetId'] for sheet in service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()['sheets']
             if sheet['properties']['title'] == worksheet_name
         )
         apply_bold_formatting(spreadsheet_id, sheet_id, headers)
-    
-    return worksheet, newly_created
+        return worksheet, newly_created
+
 
 def add_headers(worksheet, headers):
     worksheet.append_row(headers)
@@ -85,22 +86,59 @@ def validate_mobile_number(mobile_number):
 def validate_state_id_number(state_id_number):
     return state_id_number.isdigit()
 
-# Main Streamlit app code
-def main():
-    # If form was already submitted, don't show the form
-    if st.session_state.get("form_submitted", False):
-        st.success("✅ Form submitted successfully!")
+# Sample username and password for authentication
+USERNAME = "admin"
+PASSWORD = "password"
 
-        if st.button("Fill Another Form", key="new_form"):
-            st.session_state.clear()
-            st.rerun()
+# Login page
+def login_page():
+    st.title("Login")
+    username = st.text_input("Username:")
+    password = st.text_input("Password:", type="password")
+    if st.button("Login"):
+        if username == USERNAME and password == PASSWORD:
+            st.session_state['logged_in'] = True
+            st.session_state['page'] = "dashboard"
+            # Instead of st.experimental_rerun(), use set_query_params to trigger a refresh
+            st.experimental_set_query_params(logged_in="true")
+        else:
+            st.error("Incorrect username or password.")
 
-        return
+# Logout function
+def logout():
+    st.session_state['logged_in'] = False
+    st.session_state['page'] = "login"
+    st.experimental_set_query_params(logged_in="false")  # Remove the query parameter
+    st.success("You have been logged out.")
 
 
-    st.title('Test Badminton Form')
+# Dashboard for CRUD operations
+def admin_dashboard():
+    st.title("Admin Dashboard")
 
-    # Create input fields for the new row data
+    # Logout button
+    if st.sidebar.button("Logout"):
+        logout()
+
+    # Sidebar for navigation
+    page = st.sidebar.radio("Go to", ['View Data', 'Add Entry', 'Edit Entry', 'Delete Entry'])
+
+    # Google Sheets connection
+    sheet = client.open_by_url(GSHEET_URL).sheet1
+
+    # View Data
+    if page == 'View Data':
+        st.subheader("View Data")
+        data = sheet.get_all_records()
+        df = pd.DataFrame(data)
+        st.dataframe(df)
+
+   # Add Entry Page
+    elif page == 'Add Entry':
+     st.subheader("Add New Entry")
+
+      # Create input fields for the new row data
+      
     new_row = {}
     new_row['Player Name'] = st.text_input("Player Name:", placeholder="Type your name...")
     new_row['State ID Number'] = st.text_input("State ID Number:", placeholder="Type a number...")
@@ -155,7 +193,7 @@ def main():
         new_row['State ID Number of Mixed Doubles'] = "-"
 
     # Button to add the new row
-    if st.button('Submit'):
+    if st.button('Add Entry'):
         # Check if mandatory fields are filled
         if not new_row['Player Name'] or not new_row['State ID Number'] or not new_row['Mobile Number'] or not new_row['Gender'] or not new_row['Category'] or not new_row['Training Centre']:
             st.error("Please fill in all the mandatory fields.")
@@ -258,17 +296,65 @@ def main():
                 add_row_to_google_sheet(first_half_row, worksheet_mixed_doubles)
                 add_row_to_google_sheet(second_half_row, worksheet_mixed_doubles)
 
+            st.success("Submitted Successfully!")
+             
+             
+            
+    # Edit Entry
+    elif page == 'Edit Entry':
+        st.subheader("Edit Entry")
+        data = sheet.get_all_records()
+        df = pd.DataFrame(data)
+        st.dataframe(df)
 
-        # Mark form as submitted
-        st.session_state.form_submitted = True
+        row_to_edit = st.number_input("Enter the serial number of the row to edit:", min_value=1, max_value=len(df), step=1)
+        if row_to_edit:
+            selected_row = df.loc[row_to_edit - 1]
+            updated_data = [
+                st.text_input("Serial Number", selected_row['Serial Number']),
+                st.text_input("Name", selected_row['Name']),
+                st.text_input("State ID Number", selected_row['State ID Number']),
+                st.text_input("Mobile Number", selected_row['Mobile Number']),
+                st.selectbox("Gender", ["Male", "Female"], index=0 if selected_row['Gender'] == "Male" else 1),
+                st.text_input("Training Centre", selected_row['Training Centre']),
+                st.selectbox("Category", ["", "U 9", "U 11", "U 13", "U 15", "U 17", "U 19", "Open"], index=0),
+                st.text_input("Seed", selected_row['Seed'])
+            ]
 
-        # Reload page
-        st.rerun()
+            if st.button("Update"):
+                cell_range = f"A{row_to_edit+1}:H{row_to_edit+1}"
+                sheet.update(cell_range, [updated_data])
+                st.success(f"Row {row_to_edit} updated successfully!")
+                st.experimental_set_query_params(updated="true")
 
-# Run the app
+    # Delete Entry
+    elif page == 'Delete Entry':
+        st.subheader("Delete Entry")
+        data = sheet.get_all_records()
+        df = pd.DataFrame(data)
+        st.dataframe(df)
+
+        row_to_delete = st.number_input("Enter the serial number of the row to delete:", min_value=1, max_value=len(df), step=1)
+        if st.button("Delete"):
+            sheet.delete_row(row_to_delete + 1)  # Add 1 because sheet is 1-indexed
+            st.success(f"Row {row_to_delete} deleted successfully!")
+            st.experimental_set_query_params(deleted="true")
+
+# Main app function
+def main():
+    # Check query parameters to mimic page refreshes
+    query_params = st.experimental_get_query_params()
+    
+    if 'logged_in' not in st.session_state:
+        st.session_state['logged_in'] = False
+
+    if query_params.get("logged_in") == ["true"]:
+        st.session_state['logged_in'] = True
+
+    if st.session_state['logged_in']:
+        admin_dashboard()
+    else:
+        login_page()
+
 if __name__ == '__main__':
     main()
-
-
-
-
