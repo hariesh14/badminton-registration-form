@@ -73,27 +73,6 @@ def apply_bold_formatting(spreadsheet_id, sheet_id, headers):
     
     service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
 
-
-
-
-# ✅ Show success if form_submitted flag is True
-if st.session_state.get("form_submitted", False):
-    st.success("Submitted Successfully!")
-
-    # clear all form fields
-    for key in list(st.session_state.keys()):
-        if key not in ["form_submitted"]:  # keep only the flag
-            del st.session_state[key]
-
-    # reset flag after clearing
-    st.session_state.form_submitted = False
-
-
-
-
-
-
-
 # Function to add a row to Google Sheets
 def add_row_to_google_sheet(new_row, worksheet):
     worksheet.append_row(new_row)
@@ -108,6 +87,17 @@ def validate_state_id_number(state_id_number):
 
 # Main Streamlit app code
 def main():
+    # If form was already submitted, don't show the form
+    if st.session_state.get("form_submitted", False):
+        st.success("✅ Form submitted successfully!")
+
+        if st.button("Fill Another Form", key="new_form"):
+            st.session_state.clear()
+            st.rerun()
+
+        return
+
+
     st.title('Test Badminton Form')
 
     # Create input fields for the new row data
@@ -164,11 +154,10 @@ def main():
         new_row['Mixed Doubles Partner'] = "-"
         new_row['State ID Number of Mixed Doubles'] = "-"
 
-    # Button to add the new row
-    #if st.button('Submit'):
-    if st.button("Submit", key="submit_other"):
+        # Button to add the new row
+    if st.button('Submit'):
         # Check if mandatory fields are filled
-        if not new_row['Player Name'] or not new_row['State ID Number'] or not new_row['Mobile Number'] or not new_row['Gender'] or not new_row['Category'] or not new_row['Training Centre']:
+        if not new_row['Player Name'] or not new_row['State ID Number'] or not new_row['Mobile Number'] or not new_row['Gender'] or not new_row['Category'] or not new_row['Training Centre'] or not new_row['Gender']:
             st.error("Please fill in all the mandatory fields.")
         elif not validate_mobile_number(new_row['Mobile Number']):
             st.error("Please enter a valid 10-digit mobile number.")
@@ -178,7 +167,16 @@ def main():
             st.error("Please enter a valid State ID Number for Doubles Partner.")
         elif new_row['Mixed Doubles'] == "Mixed Doubles" and (not validate_state_id_number(str(new_row['State ID Number of Mixed Doubles']))):
             st.error("Please enter a valid State ID Number for Mixed Doubles Partner.")
-        else:
+         # Check mandatory fields
+    if not new_row['Player Name'] or \
+       not new_row['State ID Number'] or \
+       not new_row['Mobile Number'] or \
+       not new_row['Category'] or \
+       not new_row['Training Centre']:
+        return   
+
+
+    else:
             # Prepare data for submission
             category = new_row['Category']
             gender_mapping = {"Male": "Boys", "Female": "Girls"}
@@ -269,9 +267,17 @@ def main():
                 add_row_to_google_sheet(first_half_row, worksheet_mixed_doubles)
                 add_row_to_google_sheet(second_half_row, worksheet_mixed_doubles)
 
-            st.session_state.form_submitted = True
-        
+
+        # Mark form as submitted
+    st.session_state.form_submitted = True
+
+        # Reload page
+    st.rerun()
 
 # Run the app
 if __name__ == '__main__':
     main()
+
+
+
+

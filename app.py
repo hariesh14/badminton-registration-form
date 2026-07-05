@@ -36,7 +36,7 @@ def get_or_create_worksheet(sheet, worksheet_name):
             if sheet['properties']['title'] == worksheet_name
         )
         apply_bold_formatting(spreadsheet_id, sheet_id, headers)
-    
+
     return worksheet, newly_created
 
 def add_headers(worksheet, headers):
@@ -46,7 +46,7 @@ def apply_bold_formatting(spreadsheet_id, sheet_id, headers):
     start_col = 0
     end_col = len(headers)
     range_ = f"{sheet_id}!A1:{chr(65 + end_col - 1)}1"
-    
+
     requests = [{
         "repeatCell": {
             "range": {
@@ -66,11 +66,11 @@ def apply_bold_formatting(spreadsheet_id, sheet_id, headers):
             "fields": "userEnteredFormat.textFormat.bold"
         }
     }]
-    
+
     body = {
         'requests': requests
     }
-    
+
     service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
 
 # Function to add a row to Google Sheets
@@ -104,13 +104,13 @@ def main():
     new_row = {}
     new_row['Player Name'] = st.text_input("Player Name:", placeholder="Type your name...")
     new_row['State ID Number'] = st.text_input("State ID Number:", placeholder="Type a number...")
-    
+
     # Validate the State ID Number
     if new_row['State ID Number'] and not validate_state_id_number(new_row['State ID Number']):
         st.error("Please enter a valid State ID Number.")
 
     new_row['Mobile Number'] = st.text_input("Mobile Number:", placeholder="Type your mobile number...")
-    
+
     # Validate the mobile number
     if new_row['Mobile Number'] and not validate_mobile_number(new_row['Mobile Number']):
         st.error("Please enter a valid 10-digit mobile number.")
@@ -154,29 +154,47 @@ def main():
         new_row['Mixed Doubles Partner'] = "-"
         new_row['State ID Number of Mixed Doubles'] = "-"
 
-        # Button to add the new row
-    if st.button('Submit'):
-        # Check if mandatory fields are filled
-        if not new_row['Player Name'] or not new_row['State ID Number'] or not new_row['Mobile Number'] or not new_row['Gender'] or not new_row['Category'] or not new_row['Training Centre'] or not new_row['Gender']:
-            st.error("Please fill in all the mandatory fields.")
+    # Button to add the new row
+    if st.button("Submit"):
+
+    # Mandatory fields
+        if (
+        not new_row['Player Name'] or
+        not new_row['State ID Number'] or
+        not new_row['Mobile Number'] or
+        not new_row['Gender'] or
+        not new_row['Category'] or
+        not new_row['Training Centre']
+          ):
+          st.error("Please fill in all mandatory fields.")
+
         elif not validate_mobile_number(new_row['Mobile Number']):
-            st.error("Please enter a valid 10-digit mobile number.")
+         st.error("Please enter a valid 10-digit mobile number.")
+
         elif not validate_state_id_number(new_row['State ID Number']):
-            st.error("Please enter a valid State ID Number.")
-        elif new_row['Doubles'] == "Doubles" and (not validate_state_id_number(str(new_row['State ID Number of Doubles']))):
+         st.error("Please enter a valid State ID Number.")
+
+        elif (
+        new_row['Doubles'] == "Doubles"
+        and not validate_state_id_number(str(new_row['State ID Number of Doubles']))
+            ):
             st.error("Please enter a valid State ID Number for Doubles Partner.")
-        elif new_row['Mixed Doubles'] == "Mixed Doubles" and (not validate_state_id_number(str(new_row['State ID Number of Mixed Doubles']))):
+
+        elif (
+        new_row['Mixed Doubles'] == "Mixed Doubles"
+        and not validate_state_id_number(str(new_row['State ID Number of Mixed Doubles']))
+             ):
             st.error("Please enter a valid State ID Number for Mixed Doubles Partner.")
-         # Check mandatory fields
-    if not new_row['Player Name'] or \
-       not new_row['State ID Number'] or \
-       not new_row['Mobile Number'] or \
-       not new_row['Category'] or \
-       not new_row['Training Centre']:
-        return   
+
+        elif (
+        new_row['Singles'] != "Singles"
+        and new_row['Doubles'] != "Doubles"
+        and new_row['Mixed Doubles'] != "Mixed Doubles" 
+             ):
+           st.error("Please select at least one category to participate in (Singles, Doubles, or Mixed Doubles).")
 
 
-    else:
+        else:
             # Prepare data for submission
             category = new_row['Category']
             gender_mapping = {"Male": "Boys", "Female": "Girls"}
@@ -268,11 +286,11 @@ def main():
                 add_row_to_google_sheet(second_half_row, worksheet_mixed_doubles)
 
 
-        # Mark form as submitted
-    st.session_state.form_submitted = True
+             # Mark form as submitted
+            st.session_state.form_submitted = True
 
-        # Reload page
-    st.rerun()
+             # Reload page
+            st.rerun()
 
 # Run the app
 if __name__ == '__main__':
