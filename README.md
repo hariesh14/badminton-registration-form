@@ -31,3 +31,8 @@ client_x509_cert_url = "https://www.googleapis.com/robot/v1/metadata/x509/your_s
 ```shell
 streamlit run app.py
 ```
+
+#### Make Changes Later Whenever you change your code:
+git add .
+git commit -m "Updated registration form"
+git push
