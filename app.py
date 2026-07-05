@@ -154,10 +154,10 @@ def main():
         new_row['Mixed Doubles Partner'] = "-"
         new_row['State ID Number of Mixed Doubles'] = "-"
 
-    # Button to add the new row
+        # Button to add the new row
     if st.button('Submit'):
         # Check if mandatory fields are filled
-        if not new_row['Player Name'] or not new_row['State ID Number'] or not new_row['Mobile Number'] or not new_row['Gender'] or not new_row['Category'] or not new_row['Training Centre']:
+        if not new_row['Player Name'] or not new_row['State ID Number'] or not new_row['Mobile Number'] or not new_row['Gender'] or not new_row['Category'] or not new_row['Training Centre'] or not new_row['Gender']:
             st.error("Please fill in all the mandatory fields.")
         elif not validate_mobile_number(new_row['Mobile Number']):
             st.error("Please enter a valid 10-digit mobile number.")
@@ -167,7 +167,16 @@ def main():
             st.error("Please enter a valid State ID Number for Doubles Partner.")
         elif new_row['Mixed Doubles'] == "Mixed Doubles" and (not validate_state_id_number(str(new_row['State ID Number of Mixed Doubles']))):
             st.error("Please enter a valid State ID Number for Mixed Doubles Partner.")
-        else:
+         # Check mandatory fields
+    if not new_row['Player Name'] or \
+       not new_row['State ID Number'] or \
+       not new_row['Mobile Number'] or \
+       not new_row['Category'] or \
+       not new_row['Training Centre']:
+        return   
+
+
+    else:
             # Prepare data for submission
             category = new_row['Category']
             gender_mapping = {"Male": "Boys", "Female": "Girls"}
@@ -260,10 +269,10 @@ def main():
 
 
         # Mark form as submitted
-        st.session_state.form_submitted = True
+    st.session_state.form_submitted = True
 
         # Reload page
-        st.rerun()
+    st.rerun()
 
 # Run the app
 if __name__ == '__main__':
