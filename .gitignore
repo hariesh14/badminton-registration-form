@@ -4,3 +4,7 @@ __pycache__/
 .env
 gsheet-connect-service-account.json
 test.py
+
+*.pyc
+.streamlit/secrets.toml
+service_account.json
